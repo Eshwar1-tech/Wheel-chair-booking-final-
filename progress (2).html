@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>My Booking Status</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-slate-100 min-h-screen p-6">
+
+<h2 class="text-2xl font-bold mb-6 text-blue-900">
+  My Booking Status
+</h2>
+
+<div id="bookingsContainer" class="space-y-4">
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged }
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
+  getFirestore,
+  collection,
+  query,
+  where,
+  getDocs
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCjJ9O_WJB3WnydcKumylyEarwbbs05-g8",
+  authDomain: "mlrit-wheelchair-booking-85d9f.firebaseapp.com",
+  projectId: "mlrit-wheelchair-booking-85d9f",
+  storageBucket: "mlrit-wheelchair-booking-85d9f.firebasestorage.app",
+  messagingSenderId: "949120798221",
+  appId: "1:949120798221:web:18aa25952aa29a5bb14f44"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const container = document.getElementById("bookingsContainer");
+
+onAuthStateChanged(auth, async (user) => {
+
+  if (!user) {
+    window.location.href = "index.html";
+    return;
+  }
+
+  const q = query(
+    collection(db, "bookings"),
+    where("userEmail", "==", user.email)
+  );
+
+  const snapshot = await getDocs(q);
+
+  container.innerHTML = "";
+
+  snapshot.forEach((docSnap) => {
+    const data = docSnap.data();
+
+    const card = document.createElement("div");
+    card.className = "bg-white p-4 rounded-xl shadow";
+
+    let statusColor = "text-yellow-500";
+    if (data.status === "Approved") statusColor = "text-green-500";
+    if (data.status === "Rejected") statusColor = "text-red-500";
+
+    card.innerHTML = `
+      <p><strong>Chair:</strong> ${data.chairId}</p>
+      <p><strong>Department:</strong> ${data.department}</p>
+      <p class="${statusColor} font-bold">
+        Status: ${data.status}
+      </p>
+    `;
+
+    container.appendChild(card);
+  });
+
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>MLRIT Wheelchair Booking</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="relative min-h-screen flex items-center justify-center">
+
+  <div class="absolute inset-0">
+    <img src="mlrit.jpg" class="w-full h-full object-cover" />
+    <div class="absolute inset-0 bg-gradient-to-r from-blue-900/80 to-slate-900/70 backdrop-blur-sm"></div>
+  </div>
+
+  <div class="relative bg-white shadow-2xl rounded-2xl p-8 w-96 z-10">
+    
+    <h2 class="text-2xl font-bold text-center text-blue-900 mb-6">
+      MLRIT Wheelchair Booking
+    </h2>
+
+    <p class="text-center text-gray-500 mb-6 text-sm">
+      Accessible Campus for Everyone
+    </p>
+
+    <form class="space-y-4">
+      
+      <input type="email" placeholder="Email"
+        class="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" required>
+
+      <input type="password" placeholder="Password"
+        class="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" required>
+
+      <button type="submit"
+        class="w-full bg-blue-900 text-white py-3 rounded-lg hover:bg-blue-700 transition">
+        Login
+      </button>
+
+      <button type="button"
+        class="w-full bg-emerald-500 text-white py-3 rounded-lg hover:bg-emerald-600 transition">
+        Login with Google
+      </button>
+
+    </form>
+
+  </div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { 
+    getAuth, 
+    createUserWithEmailAndPassword, 
+    signInWithEmailAndPassword 
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCjJ9O_WJB3WnydcKumylyEarwbbs05-g8",
+    authDomain: "mlrit-wheelchair-booking-85d9f.firebaseapp.com",
+    projectId: "mlrit-wheelchair-booking-85d9f",
+    storageBucket: "mlrit-wheelchair-booking-85d9f.firebasestorage.app",
+    messagingSenderId: "949120798221",
+    appId: "1:949120798221:web:18aa25952aa29a5bb14f44"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+
+  const form = document.querySelector("form");
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const email = form[0].value;
+    const password = form[1].value;
+
+    try {
+
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      redirectUser(userCredential.user.email);
+
+    } catch (error) {
+
+      if (
+        error.code === "auth/user-not-found" ||
+        error.code === "auth/invalid-credential"
+      ) {
+
+        try {
+          const newUser = await createUserWithEmailAndPassword(auth, email, password);
+          redirectUser(newUser.user.email);
+        } catch (err) {
+          alert(err.message);
+        }
+
+      } else {
+        alert(error.message);
+      }
+
+    }
+
+  });
+
+  // ✅ Centralized Redirect Logic
+  function redirectUser(userEmail) {
+    if (userEmail === "vigneshadmin@mlrit.ac.in") {
+      alert("Admin Login Successful!");
+      window.location.href = "admin.html";
+    } else {
+      alert("Login Successful!");
+      window.location.href = "dashboard.html";
+    }
+  }
+
+</script>
+
+</body>
+</html>

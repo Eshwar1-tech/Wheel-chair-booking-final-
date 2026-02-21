@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard - MLRIT Wheelchair Booking</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-slate-100 min-h-screen">
+
+<!-- Navbar -->
+<nav class="bg-blue-900 text-white p-4 flex justify-between items-center">
+
+  <h1 class="text-lg font-semibold">
+    MLRIT Wheelchair Booking (MLID)
+  </h1>
+
+  <div class="flex items-center gap-4">
+
+    <!-- My Updates Button -->
+    <button id="updatesBtn"
+      class="relative bg-emerald-500 px-4 py-2 rounded-lg hover:bg-emerald-600 transition">
+      My Updates
+      <span id="updateBadge"
+        class="absolute -top-2 -right-2 bg-red-600 text-white text-xs px-2 py-0.5 rounded-full hidden">
+        0
+      </span>
+    </button>
+
+    <!-- Logout -->
+    <button id="logoutBtn"
+      class="bg-red-500 px-4 py-2 rounded-lg hover:bg-red-600 transition">
+      Logout
+    </button>
+
+  </div>
+
+</nav>
+
+<!-- Stats Section -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-6">
+
+  <div class="bg-white p-6 rounded-xl shadow">
+    <h2 class="text-gray-500">Total Chairs</h2>
+    <p class="text-2xl font-bold text-blue-900">20</p>
+  </div>
+
+  <div class="bg-white p-6 rounded-xl shadow">
+    <h2 class="text-gray-500">Available</h2>
+    <p class="text-2xl font-bold text-emerald-500" id="availableCount">0</p>
+  </div>
+
+  <div class="bg-white p-6 rounded-xl shadow">
+    <h2 class="text-gray-500">Booked</h2>
+    <p class="text-2xl font-bold text-red-500" id="bookedCount">0</p>
+  </div>
+
+</div>
+
+<!-- Chairs Grid -->
+<div class="p-6">
+  <h2 class="text-xl font-semibold mb-6 text-blue-900">
+    Available Wheelchairs
+  </h2>
+
+  <div id="chairsContainer"
+       class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut }
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
+  getFirestore,
+  collection,
+  onSnapshot,
+  doc,
+  setDoc,
+  getDoc,
+  query,
+  where
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCjJ9O_WJB3WnydcKumylyEarwbbs05-g8",
+  authDomain: "mlrit-wheelchair-booking-85d9f.firebaseapp.com",
+  projectId: "mlrit-wheelchair-booking-85d9f",
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const container = document.getElementById("chairsContainer");
+const availableCount = document.getElementById("availableCount");
+const bookedCount = document.getElementById("bookedCount");
+
+/* Logout */
+document.getElementById("logoutBtn").onclick = () => {
+  signOut(auth);
+};
+
+/* Auth Check + Badge Logic */
+onAuthStateChanged(auth, (user) => {
+
+  if (!user) {
+    window.location.href = "index.html";
+    return;
+  }
+
+  const bookingsRef = collection(db, "bookings");
+  const q = query(
+    bookingsRef,
+    where("userEmail", "==", user.email),
+    where("status", "==", "Approved")
+  );
+
+  onSnapshot(q, (snapshot) => {
+
+    const badge = document.getElementById("updateBadge");
+
+    if (snapshot.size > 0) {
+      badge.textContent = snapshot.size;
+      badge.classList.remove("hidden");
+    } else {
+      badge.classList.add("hidden");
+    }
+
+  });
+
+});
+
+/* Redirect to successful page */
+document.getElementById("updatesBtn").onclick = () => {
+  window.location.href = "success.html";
+};
+
+/* Create chairs only if missing */
+async function createChairsIfMissing() {
+
+  for (let i = 1; i <= 20; i++) {
+
+    let number = i < 10 ? "0" + i : i;
+    let chairId = "WC-" + number;
+
+    const chairRef = doc(db, "chairs", chairId);
+    const chairSnap = await getDoc(chairRef);
+
+    if (!chairSnap.exists()) {
+      await setDoc(chairRef, {
+        chairID: chairId,
+        available: true
+      });
+    }
+
+  }
+
+}
+
+createChairsIfMissing();
+
+/* Live Chair Listener */
+const chairsRef = collection(db, "chairs");
+
+onSnapshot(chairsRef, (snapshot) => {
+
+  container.innerHTML = "";
+  let available = 0;
+  let booked = 0;
+
+  snapshot.forEach((docSnap) => {
+
+    const data = docSnap.data();
+
+    if (data.available === true) {
+
+      available++;
+
+      const card = document.createElement("div");
+      card.className = "bg-white p-4 rounded-xl shadow text-center";
+
+      card.innerHTML = `
+        <h3 class="font-bold text-blue-900">${data.chairID}</h3>
+        <p class="text-emerald-500 mb-2">Available</p>
+        <button class="px-4 py-2 rounded text-white bg-blue-900 hover:bg-blue-700">
+          Book
+        </button>
+      `;
+
+      card.querySelector("button").onclick = () => {
+        window.location.href = `booking.html?chair=${data.chairID}`;
+      };
+
+      container.appendChild(card);
+
+    } else {
+      booked++;
+    }
+
+  });
+
+  availableCount.textContent = available;
+  bookedCount.textContent = booked;
+
+});
+</script>
+
+</body>
+</html>

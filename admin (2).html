@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Approval Panel</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-slate-100 min-h-screen p-6">
+
+<h2 class="text-2xl font-bold mb-6 text-blue-900">
+  Admin Approval Panel
+</h2>
+
+<div id="bookingContainer" class="space-y-4"></div>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  onSnapshot,
+  doc,
+  updateDoc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCjJ9O_WJB3WnydcKumylyEarwbbs05-g8",
+  authDomain: "mlrit-wheelchair-booking-85d9f.firebaseapp.com",
+  projectId: "mlrit-wheelchair-booking-85d9f",
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const container = document.getElementById("bookingContainer");
+const bookingsRef = collection(db, "bookings");
+
+onSnapshot(bookingsRef, (snapshot) => {
+
+  container.innerHTML = "";
+
+  snapshot.forEach((docSnap) => {
+
+    const data = docSnap.data();
+
+    const card = document.createElement("div");
+    card.className = "bg-white p-4 rounded-xl shadow";
+
+    card.innerHTML = `
+      <p><strong>Name:</strong> ${data.name}</p>
+      <p><strong>Chair:</strong> ${data.chairId || "Not Selected"}</p>
+      <p><strong>Department:</strong> ${data.department}</p>
+
+      <p><strong>Booking Date:</strong> ${
+        data.createdAt
+          ? new Date(data.createdAt.seconds * 1000).toLocaleDateString()
+          : "Not Available"
+      }</p>
+
+      <p><strong>Booking Time:</strong> ${data.bookingTime || "Not Provided"}</p>
+
+      <p>
+<strong>Status:</strong> 
+<span class="${
+  data.status === 'Approved'
+    ? 'text-green-600 font-bold'
+    : data.status === 'Rejected'
+    ? 'text-red-600 font-bold'
+    : 'text-yellow-600 font-bold'
+}">
+${data.status}
+</span>
+</p>
+
+      ${data.proofFile ? `
+        <button class="viewProof bg-blue-600 text-white px-4 py-2 rounded mt-3">
+          View Proof
+        </button>
+      ` : ""}
+
+      ${data.status === "Pending" ? `
+      <div class="mt-3 space-x-2">
+        <button class="approve bg-green-500 text-white px-4 py-2 rounded">
+          Approve
+        </button>
+        <button class="reject bg-red-500 text-white px-4 py-2 rounded">
+          Reject
+        </button>
+      </div>
+      ` : ""}
+    `;
+
+    if (data.proofFile) {
+      const proofBtn = card.querySelector(".viewProof");
+      proofBtn.onclick = () => {
+        const newTab = window.open();
+        newTab.document.write(
+          `<img src="${data.proofFile}" style="width:100%" />`
+        );
+      };
+    }
+
+    if (data.status === "Pending") {
+
+      const approveBtn = card.querySelector(".approve");
+      const rejectBtn = card.querySelector(".reject");
+
+      approveBtn.onclick = async () => {
+
+        await updateDoc(doc(db, "bookings", docSnap.id), {
+          status: "Approved"
+        });
+
+        if (data.chairId) {
+          await updateDoc(doc(db, "chairs", data.chairId), {
+            available: false
+          });
+        }
+
+      };
+
+      rejectBtn.onclick = async () => {
+
+        await updateDoc(doc(db, "bookings", docSnap.id), {
+          status: "Rejected"
+        });
+
+        if (data.chairId) {
+          await updateDoc(doc(db, "chairs", data.chairId), {
+            available: true
+          });
+        }
+
+      };
+    }
+
+    container.appendChild(card);
+  });
+});
+</script>
+
+</body>
+</html>

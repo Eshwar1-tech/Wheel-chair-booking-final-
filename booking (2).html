@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Wheelchair Booking Form</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 p-6">
+
+<div class="w-full max-w-xl bg-white/95 backdrop-blur-lg rounded-2xl shadow-2xl p-8">
+
+<h2 class="text-3xl font-bold mb-6 text-center text-blue-900">
+  Wheelchair Booking Form
+</h2>
+
+<form id="bookingForm" class="space-y-4">
+
+  <input type="text" id="name" placeholder="Full Name"
+    class="w-full p-3 border rounded-lg" required>
+
+  <input type="date" id="dob"
+    class="w-full p-3 border rounded-lg" required>
+
+  <input type="text" id="department" placeholder="Department"
+    class="w-full p-3 border rounded-lg" required>
+
+  <select id="role"
+    class="w-full p-3 border rounded-lg" required>
+    <option value="">Select Category</option>
+    <option value="student">Student</option>
+    <option value="faculty">Faculty</option>
+    <option value="oldage">Old-age</option>
+    <option value="handicapped">Handicapped</option>
+  </select>
+
+  <!-- OTP SECTION -->
+  <div id="otpSection" class="hidden space-y-3">
+
+    <input type="tel" id="mobileNumber"
+      placeholder="Enter Mobile Number"
+      class="w-full p-3 border rounded-lg">
+
+    <button type="button" id="generateOtpBtn"
+      class="bg-purple-600 text-white px-4 py-2 rounded">
+      Generate OTP
+    </button>
+
+    <input type="text" id="enteredOtp"
+      placeholder="Enter OTP"
+      class="w-full p-3 border rounded-lg">
+
+    <button type="button" id="verifyOtpBtn"
+      class="bg-green-600 text-white px-4 py-2 rounded">
+      Verify OTP
+    </button>
+
+    <p id="otpMessage" class="font-semibold"></p>
+
+  </div>
+
+  <input type="text" id="designation" placeholder="Designation"
+    class="w-full p-3 border rounded-lg" required>
+
+  <input type="text" id="rollNo" placeholder="Roll No"
+    class="w-full p-3 border rounded-lg" required>
+
+  <!-- ✅ FILE UPLOAD -->
+  <input type="file" id="proofFile"
+    class="w-full p-3 border rounded-lg bg-white" required>
+
+  <input type="text" id="fromLocation" placeholder="From Location"
+    class="w-full p-3 border rounded-lg" required>
+
+  <input type="text" id="toLocation" placeholder="Destination Location"
+    class="w-full p-3 border rounded-lg" required>
+
+  <input type="time" id="bookingTime"
+    class="w-full p-3 border rounded-lg" required>
+
+  <label class="flex items-center space-x-2 text-sm">
+    <input type="checkbox" id="terms" required>
+    <span>I agree to Terms & Conditions</span>
+  </label>
+
+  <button type="submit"
+    id="confirmBtn"
+    disabled
+    class="w-full bg-blue-900 text-white py-3 rounded-lg opacity-50">
+    Confirm Book
+  </button>
+
+</form>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
+  getFirestore,
+  doc,
+  setDoc,
+  getDoc,
+  collection,
+  addDoc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCjJ9O_WJB3WnydcKumylyEarwbbs05-g8",
+  authDomain: "mlrit-wheelchair-booking-85d9f.firebaseapp.com",
+  projectId: "mlrit-wheelchair-booking-85d9f",
+  storageBucket: "mlrit-wheelchair-booking-85d9f.firebasestorage.app",
+  messagingSenderId: "949120798221",
+  appId: "1:949120798221:web:18aa25952aa29a5bb14f44"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+const roleSelect = document.getElementById("role");
+const otpSection = document.getElementById("otpSection");
+const confirmBtn = document.getElementById("confirmBtn");
+const otpMessage = document.getElementById("otpMessage");
+
+let otpVerified = false;
+
+/* OTP visibility */
+roleSelect.addEventListener("change", () => {
+
+  if (roleSelect.value === "oldage" || roleSelect.value === "handicapped") {
+    otpSection.classList.remove("hidden");
+    confirmBtn.disabled = true;
+    confirmBtn.classList.add("opacity-50");
+    otpVerified = false;
+  } else {
+    otpSection.classList.add("hidden");
+    confirmBtn.disabled = false;
+    confirmBtn.classList.remove("opacity-50");
+    otpVerified = true;
+  }
+
+});
+
+/* Generate OTP */
+document.getElementById("generateOtpBtn").onclick = async () => {
+
+  const mobile = document.getElementById("mobileNumber").value;
+
+  if (!mobile) {
+    alert("Enter mobile number!");
+    return;
+  }
+
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+  await setDoc(doc(db, "otpVerification", mobile), {
+    otp: otp,
+    createdAt: new Date()
+  });
+
+  alert("Your OTP is: " + otp);
+};
+
+/* Verify OTP */
+document.getElementById("verifyOtpBtn").onclick = async () => {
+
+  const mobile = document.getElementById("mobileNumber").value;
+  const enteredOtp = document.getElementById("enteredOtp").value;
+
+  const otpDoc = await getDoc(doc(db, "otpVerification", mobile));
+
+  if (!otpDoc.exists()) {
+    alert("Generate OTP first!");
+    return;
+  }
+
+  const savedOtp = otpDoc.data().otp;
+
+  if (enteredOtp === savedOtp) {
+
+    otpMessage.innerText = "✅ OTP Verification Successful";
+    otpMessage.classList.add("text-green-600");
+
+    confirmBtn.disabled = false;
+    confirmBtn.classList.remove("opacity-50");
+
+    otpVerified = true;
+
+  } else {
+
+    otpMessage.innerText = "❌ Invalid OTP";
+    otpMessage.classList.add("text-red-600");
+
+    confirmBtn.disabled = true;
+    confirmBtn.classList.add("opacity-50");
+
+    otpVerified = false;
+  }
+
+};
+
+/* Submit Form */
+document.getElementById("bookingForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  if ((roleSelect.value === "oldage" || roleSelect.value === "handicapped") && !otpVerified) {
+    alert("Please verify OTP first!");
+    return;
+  }
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const selectedChair = urlParams.get("chair");
+
+  // ✅ Convert file to Base64
+  const fileInput = document.getElementById("proofFile");
+  let proofBase64 = "";
+
+  if (fileInput.files.length > 0) {
+
+    const file = fileInput.files[0];
+
+    if (file.size > 500000) {
+      alert("File too large! Upload below 500KB.");
+      return;
+    }
+
+    proofBase64 = await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  await addDoc(collection(db, "bookings"), {
+    chairId: selectedChair,
+    name: document.getElementById("name").value,
+    department: document.getElementById("department").value,
+    designation: document.getElementById("designation").value,
+    rollNo: document.getElementById("rollNo").value,
+    fromLocation: document.getElementById("fromLocation").value,
+    destination: document.getElementById("toLocation").value,
+    bookingTime: document.getElementById("bookingTime").value,
+    proofFile: proofBase64,
+    status: "Pending",
+    userEmail: auth.currentUser ? auth.currentUser.email : "guest",
+    createdAt: new Date()
+  });
+
+  alert("Booking Submitted Successfully!");
+
+  window.location.href = "success.html";
+});
+</script>
+
+</body>
+</html>
